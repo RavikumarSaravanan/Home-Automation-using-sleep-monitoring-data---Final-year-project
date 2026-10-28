@@ -1,0 +1,71 @@
+27ITPS005 – IoT-Powered Adaptive Sleep Environment for Health & Wellness
+
+SYNOPSIS
+1. TITLE OF THE PROJECT
+IoT-Powered Adaptive Sleep Environment for Health & Wellness
+2. DOMAIN
+Internet of Things (IoT)
+Healthcare Technology
+Smart Home Systems
+3. PROBLEM IDENTIFICATION / INTRODUCTION
+Sleep quality is a critical component of human health and wellness, directly influencing physical fitness, mental health, and daily productivity. Poor sleep patterns may lead to chronic health conditions such as stress, anxiety, cardiovascular diseases, and reduced cognitive performance. Traditional sleep monitoring techniques like polysomnography provide accurate results but are costly, intrusive, and unsuitable for continuous home-based monitoring.
+Most existing smart home systems focus mainly on energy efficiency and static appliance control rather than dynamically optimizing sleep conditions based on real-time physiological data. These systems lack the ability to monitor biometric signals such as heart rate, motion, and breathing patterns and fail to adapt environmental conditions accordingly.
+Hence, there is a need for a cost-effective, IoT-based adaptive sleep environment that continuously monitors biometric parameters, learns individual sleep patterns, and intelligently adjusts environmental factors to enhance sleep quality.
+4. PROBLEM STATEMENT
+To design and develop an IoT-powered adaptive sleep environment that monitors real-time biometric signals such as heart rate, motion, and breathing patterns, analyzes sleep behavior, and dynamically optimizes environmental parameters like temperature, lighting, airflow, and noise levels to improve sleep quality and overall health.
+5. OBJECTIVES OF THE PROJECT
+To monitor real-time biometric parameters using IoT sensors
+To analyze sleep patterns and generate personalized sleep profiles
+To integrate smart home devices for automated environmental control
+To dynamically optimize sleep conditions using intelligent decision logic
+To predict sleep disturbances and provide alerts or recommendations
+6. PROPOSED SOLUTION / METHODOLOGY
+The proposed system consists of IoT sensors connected to a microcontroller that continuously collects biometric and environmental data during sleep. The collected data is processed locally and stored in the cloud for analysis. Intelligent algorithms analyze sleep patterns and determine optimal environmental conditions.
+Based on the analysis, the system automatically controls smart devices such as lights, fans, and temperature controllers through relay modules. Predictive logic is used to detect possible sleep disturbances and take proactive actions or generate alerts. The system gradually learns individual sleep behavior to improve accuracy and personalization over time.
+7. SYSTEM ARCHITECTURE (BRIEF)
+Input Layer: Heart rate sensor, PIR motion sensor, temperature & humidity sensor
+Processing Layer: ESP32 / Arduino microcontroller, decision logic
+Output Layer: Smart light, fan / AC control via relay
+Cloud Layer: Data storage, monitoring dashboard
+8. HARDWARE REQUIREMENTS
+ESP32 / Arduino UNO
+Pulse (Heart Rate) Sensor
+PIR Motion Sensor
+DHT11 Temperature & Humidity Sensor
+Relay Module
+Breadboard, connecting wires, power supply
+9. SOFTWARE REQUIREMENTS
+Arduino IDE
+Embedded C / Python
+IoT Cloud Platform (Firebase / ThingSpeak)
+Web Dashboard (HTML, CSS, JavaScript)
+10. EXPECTED OUTCOMES
+Dependent Outcomes (D)
+Real-time biometric monitoring
+Personalized sleep profile creation
+Integration with smart home devices
+Independent Outcomes (I)
+Environmental optimization using AI logic
+Predictive alerts for sleep disturbances
+11. APPLICATIONS
+Smart homes
+Healthcare monitoring systems
+Elderly care and patient monitoring
+Sleep disorder management
+12. ADVANTAGES
+Improves sleep quality naturally
+Cost-effective and energy efficient
+Fully automated and adaptive
+Suitable for long-term home use
+13. FUTURE ENHANCEMENTS
+Integration with wearable devices
+Advanced machine learning for sleep stage detection
+Mobile application for detailed sleep analytics
+Voice assistant integration
+14. LITERATURE REVIEW (BRIEF)
+Several researchers have proposed IoT-based sleep monitoring systems using low-cost sensors and machine learning techniques. Saleem et al. presented a smart and cost-effective IoT healthcare system for sleep quality monitoring using ambient and physiological parameters. Gamel and Talaat proposed an IoT-enabled continual learning approach for intelligent sleep enhancement. Cong Thuan Do et al. introduced an IoT-powered healthcare system using EEG signals for sleep state analysis. These works highlight the importance of IoT and AI in sleep monitoring while indicating the need for adaptive environmental optimization, which is addressed in the proposed system.
+15. REFERENCES
+
+K. Saleem et al., “IoT Healthcare: Design of Smart and Cost-Effective Sleep Quality Monitoring System,” Journal of Sensors, 2020.
+S. A. Gamel and F. M. Talaat, “SleepSmart: an IoT-enabled continual learning algorithm for intelligent sleep enhancement,” Neural Computing and Applications, 2024.
+C. T. Do et al., “IoT-Powered Mental Healthcare: Sleep State Analyzing and Monitoring Based on EEG Signals,” IEEE Access, 2025.

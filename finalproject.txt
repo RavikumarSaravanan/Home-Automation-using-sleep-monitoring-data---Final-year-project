@@ -1,0 +1,363 @@
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <DHT.h>
+
+#define DHTPIN 12 // Connect DHT data pin to GPIO 12
+#define DHTTYPE DHT22
+DHT dht(DHTPIN, DHTTYPE);
+
+// Wokwi provides a built-in virtual Wi-Fi network
+const char* ssid = "Wokwi-GUEST"; 
+const char* password = "";
+
+// Using a free public MQTT broker for the simulation path
+const char* mqtt_server = "broker.hivemq.com";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  Serial.println("System Initializing...");
+  dht.begin();
+  
+  Serial.print("Connecting to Wi-Fi...");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) { 
+    delay(500); 
+    Serial.print(".");
+  }
+  Serial.println("\nWi-Fi Connected successfully!");
+  
+  client.setServer(mqtt_server, 1883);
+}
+
+void loop() {
+  if (!client.connected()) {
+    while (!client.connected()) {
+      Serial.print("Attempting MQTT connection to ");
+      Serial.println(mqtt_server);
+      if (client.connect("Wokwi_Sleep_Sim")) {
+        Serial.println("-> Connected to MQTT Server!");
+      } else { 
+        Serial.print("-> Failed connection, rc=");
+        Serial.print(client.state());
+        Serial.println(" (Retrying in 2 seconds...)");
+        delay(2000); 
+      }
+    }
+  }
+  client.loop();
+
+  float temp = dht.readTemperature();
+  int bpm = map(analogRead(34), 0, 4095, 50, 140);
+  int motion = digitalRead(14);
+
+  // Print values locally to verify they work
+  Serial.print("Temp: "); Serial.print(temp);
+  Serial.print("C | BPM: "); Serial.print(bpm);
+  Serial.print(" | Motion: "); Serial.println(motion);
+
+  String payload = "{\"temp\":" + String(temp) + ",\"bpm\":" + String(bpm) + ",\"motion\":" + String(motion) + "}";
+  client.publish("college_project/sleep_sim", payload.c_str());
+  delay(2000); 
+}
+
+
+
+Great job getting the Wi-Fi connected! Your simulated ESP32 is successfully online.
+The error message -> Failed connection, rc=-2 is happening because of the text syntax on line 14 of your code. Your ESP32 is trying to look up the server name ://hivemq.com, which is an invalid web address format for an MQTT library.
+
+How to Fix It:
+
+Go back to your code window on the left side of Wokwi, find line 14, and change it to look exactly like this (make sure to delete the :// and use the full broker URL):
+cpp
+const char* mqtt_server = "broker.hivemq.com";
+Use code with caution.
+
+Why this fixes the issue:
+
+• rc=-2 means Connection Timeout / Server Not Found.
+• The PubSubClient library needs just the clean, raw server address domain string (broker.hivemq.com). It cannot parse web protocol headers like http:// or ://.
+Once you edit line 14, click the Red Stop button and then click the Green Play button again to restart your simulation. Your log should quickly change to show:
+-> Connected to MQTT Server!
+Let me know as soon as you update line 14—does the console switch over to a successful connection message?
+
+
+
+
+
+
+
+Here is the complete documentation and project report notes for your college presentation. This covers the technical specifications, architectural layouts, complete codebases, and step-by-step implementation for both your Simulation Phase and your Physical Hardware Deployment.
+
+📑 Project Report: IoT-Based Sleep Monitoring & Smart Home Automation System
+
+
+1. Project Abstract
+
+This project presents an intelligent, interconnected ecosystem designed to optimize personal health and energy conservation. By pairing an edge-sensing node (ESP32) with a central automation server (Raspberry Pi 4) over a lightweight messaging protocol (MQTT), the system tracks real-time biological vitals and environmental conditions during sleep cycles.
+The system acts as a closed-loop automation platform: when biometric sensors indicate a user has transitioned from awake to sleep states, the central server automatically modifies the physical environment—dimming primary light fixtures, activating soft night-lamps, and adjusting the fan speed dynamically according to the room’s ambient temperature.
+
+2. System Architecture & Data Flow Diagram
+
+   [ EDGE LAYER: USER'S BED / WRIST ]
+   ┌────────────────────────────────┐
+   │  ESP32 Microcontroller (Node)  │◄─── (Powered via USB Cable)
+   └───────────────┬────────────────┘
+                   │ Reads I2C/Digital Inputs
+                   ▼
+     [ MAX30102 (BPM) / MPU6050 (Motion) / DHT22 (Temp) ]
+                   │
+                   │  Encodes into standard JSON Payload string
+                   ▼
+                   │  Sends via Wi-Fi (TCP Port 1883)
+                   ▼
+   [ TRANSPORT LAYER: PUBLIC OR LOCAL BROKER ]
+   ┌────────────────────────────────────────┐
+   │     MQTT Broker (Mosquitto/HiveMQ)     │
+   └───────────────┬────────────────────────┘
+                   │
+                   │  Pushes data to subscribed topics
+                   ▼
+   [ APPLICATION & CONTROL LAYER: HUB ]
+   ┌────────────────────────────────────────┐
+   │ Raspberry Pi 4 Node-RED Hub Dashboard  │
+   └───────────────┬────────────────────────┘
+                   │
+                   ├─► Computes Automation Logic Matrices
+                   │
+                   ▼
+   [ ACTUATION LAYER: RELAYS & INDICATORS ]
+   ┌────────────────────────────────────────┐
+   │   4-Channel Relay Board / Status LEDs  │ ──► Controls AC Lights & Fans
+   └────────────────────────────────────────┘
+
+3. Hardware Component Matrix
+
+
+Component Name	Technical Purpose in Project	Connection Interface	Operating Voltage
+ESP32 Development Board	Acts as the local edge device, sampling sensors and transmitting data over Wi-Fi.	Micro-USB / Type-C	3.3V / 5V
+Raspberry Pi 4 (8GB)	Functions as the central server host executing the MQTT broker, Node-RED core, and Dashboard UI.	Type-C	5V (3A Recommended)
+MAX30102 Sensor	Captures photoplethysmogram (PPG) waves to calculate heart rate (BPM) and blood oxygen saturation (SpO₂).	I2C (SDA/SCL)	3.3V
+MPU6050 Sensor	3-axis accelerometer and gyroscope tracking body adjustments and sleep toss-and-turn frequency.	I2C (SDA/SCL)	3.3V
+DHT22 / DHT11 Sensor	Measures ambient air temperature and relative humidity levels inside the bedroom.	Digital Single-Bus	3.3V to 5V
+Sound Detection Module	Microphone with comparator output to capture acoustic disruptions like snoring or ambient noise peaks.	Digital Input	3.3V / 5V
+4-Channel 5V Relay Board	Optoisolated switches that let the low-voltage ESP32 safely toggle standard high-voltage household loads.	Digital Outputs	5V VCC / 3.3V Logic
+
+
+4. Complete Software Codebases
+
+
+Phase A: Wokwi Online Simulation Code
+
+This script connects to a virtual network and leverages a free public internet broker to pipe test data safely into your workstation's development environment.
+cpp
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <DHT.h>
+
+#define DHTPIN 12 
+#define DHTTYPE DHT22
+DHT dht(DHTPIN, DHTTYPE);
+
+// Wokwi simulation network credentials
+const char* ssid = "Wokwi-GUEST"; 
+const char* password = "";
+
+// Public testing broker 
+const char* mqtt_server = "://hivemq.com"; 
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  Serial.println("=================================");
+  Serial.println("System Initializing Simulation...");
+  Serial.println("=================================");
+  
+  dht.begin();
+  
+  Serial.print("Connecting to Virtual Wi-Fi");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) { 
+    delay(500); 
+    Serial.print(".");
+  }
+  Serial.println("\n[SUCCESS] Wi-Fi Connected!");
+  
+  client.setServer(mqtt_server, 1883);
+}
+
+void loop() {
+  if (!client.connected()) {
+    while (!client.connected()) {
+      Serial.print("Connecting to HiveMQ Broker: ");
+      Serial.println(mqtt_server);
+      if (client.connect("Wokwi_Sleep_Sim_Project")) {
+        Serial.println("-> [SUCCESS] Connected to MQTT Server!");
+      } else { 
+        Serial.print("-> [ERROR] Failed, rc=");
+        Serial.print(client.state());
+        Serial.println(" (Retrying in 2 seconds...)");
+        delay(2000); 
+      }
+    }
+  }
+  client.loop();
+
+  // Read Simulated Sensor Pins
+  float temp = dht.readTemperature();
+  float hum = dht.readHumidity();
+  
+  // Maps standard analog potentiometer dial (GPIO 34) to a human heart rate range
+  int bpm = map(analogRead(34), 0, 4095, 50, 140);
+  
+  // Reads digital input pin representing movement (0=Sleep, 1=Awake)
+  int motion = digitalRead(14); 
+
+  // Print diagnostic log out to Wokwi console window
+  Serial.print("Telemetry -> Temp: "); Serial.print(temp);
+  Serial.print("C | BPM: "); Serial.print(bpm);
+  Serial.print(" | Motion State: "); Serial.println(motion == 0 ? "SLEEP" : "AWAKE");
+
+  // String serialization into an minified JSON object structure
+  String payload = "{\"temp\":" + String(temp) + 
+                   ",\"humidity\":" + String(hum) + 
+                   ",\"bpm\":" + String(bpm) + 
+                   ",\"motion\":" + String(motion) + "}";
+  
+  client.publish("college_project/sleep_sim", payload.c_str());
+  delay(2000); // 2 Second sample rate intervals
+}
+Use code with caution.
+
+Phase B: Physical Deployment Hardware Code (Raspberry Pi Setup)
+
+When deploying your real hardware, swap your code configuration to flash this version. It switches communication to target your local Raspberry Pi server directly over your home Wi-Fi network without routing traffic out to the internet.
+cpp
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <DHT.h>
+#include <Wire.h>
+
+#define DHTPIN 4
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+// Physical Pin Declarations
+const int soundPin = 18;
+const int relayLight = 12;
+const int relayFan = 13;
+const int relayNightLamp = 14;
+const int buzzerPin = 19;
+
+// Network Configs - Update to match your home setup
+const char* ssid = "YOUR_HOME_WIFI_NAME";
+const char* password = "YOUR_WIFI_PASSWORD";
+const char* mqtt_server = "192.168.1.X"; // Replace with your Raspberry Pi's local IP address
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+  Wire.begin(); // Initiates I2C line for MAX30102/MPU6050
+  
+  pinMode(soundPin, INPUT);
+  pinMode(relayLight, OUTPUT);
+  pinMode(relayFan, OUTPUT);
+  pinMode(relayNightLamp, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+
+  // Default appliance status configurations (Lights on, fan ready)
+  digitalWrite(relayLight, HIGH); 
+  digitalWrite(relayFan, HIGH);
+  digitalWrite(relayNightLamp, LOW);
+
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) delay(500);
+  
+  client.setServer(mqtt_server, 1883);
+}
+
+void loop() {
+  if (!client.connected()) {
+    while (!client.connected()) {
+      if (client.connect("ESP32_Physical_Sleep_Node")) {
+        Serial.println("Connected to Local Pi MQTT Broker!");
+      } else { delay(2000); }
+    }
+  }
+  client.loop();
+
+  // Read authentic hardware configurations
+  float temp = dht.readTemperature();
+  int soundPresence = digitalRead(soundPin);
+  
+  // Real deployment values from your biometric breakout boards
+  int calculatedBPM = 72;   // Placeholder for your MAX30102 parsing algorithm output
+  int motionDetected = 0;   // Placeholder for your MPU6050 delta threshold step output
+
+  String payload = "{\"temp\":" + String(temp) + 
+                   ",\"bpm\":" + String(calculatedBPM) + 
+                   ",\"motion\":" + String(motionDetected) + 
+                   ",\"snore\":" + String(soundPresence) + "}";
+                   
+  client.publish("home/sleep_data", payload.c_str());
+  delay(3000);
+}
+Use code with caution.
+
+5. Node-RED Automation Logic & Dashboard Pipeline
+
+
+Deployment Steps on Raspberry Pi
+
+To map your flow workspace configuration without designing UI widgets by hand, install the user interface nodes through the menu palette:
+1. Navigate to your browser interface workspace (http://localhost:1880).
+2. Click Menu (Top Right) ──► Manage Palette ──► Install.
+3. Locate and install node-red-dashboard or @flowfuse/node-red-dashboard.
+
+Node Configuration Logic
+
+To implement the automation matrix logic inside Node-RED, wire the nodes together in this precise sequence:
+1. MQTT In Node: Connects to server localhost:1883 or ://hivemq.com subscribing to topic college_project/sleep_sim.
+2. JSON Parsing Node: Transforms incoming raw packet strings into readable JavaScript object structures (msg.payload).
+3. UI Gauge & Chart Nodes: Placed inline directly after parsing to pull msg.payload.temp and msg.payload.bpm keys to output live visual instrumentation dials.
+4. Function Node (Automation Logic Script): Evaluates environment states using a JavaScript logical evaluation layout:
+javascript
+// Example Node-RED Function Block Logic code mapping
+let bpm = msg.payload.bpm;
+let motion = msg.payload.motion;
+let temp = msg.payload.temp;
+
+// User Sleep State Assessment Matrix
+if (motion === 0 && bpm < 80) {
+    // User is ASLEEP state detected
+    msg.payload = {
+        mainLight: "OFF",
+        nightLamp: "ON",
+        fanSpeed: (temp > 26) ? "HIGH" : "LOW"
+    };
+} else {
+    // User is AWAKE state detected
+    msg.payload = {
+        mainLight: "ON",
+        nightLamp: "OFF",
+        fanSpeed: "STANDARD"
+    };
+}
+return msg;
+Use code with caution.
+
+6. Project Advantages & Future Scope
+
+• Energy Management Optimization: Cuts room appliance electricity overheads automatically by running high-power cooling utilities only when ambient parameters cross target thresholds while sleeping.
+• Non-Invasive Healthcare Auditing: Creates a foundation for monitoring real-time patterns to spot early anomalies, like sudden drops in oxygen levels or high heart rates, which can point to sleep conditions like sleep apnea.
+• Expanded Capabilities: Can scale to interface with open-source platforms like Home Assistant, add machine-learning models to track long-term health metrics, or use Wi-Fi Channel State Information (CSI) for completely contact-free vitals tracking.
+Would you like me to generate a step-by-step assembly manual detailing exactly how to safely hook up your high-voltage 4-channel relay module to physical household appliances, or do you need a template for your slide deck/viva presentation outline?
